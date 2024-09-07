@@ -3,6 +3,7 @@ from gradio_client import Client
 from PIL import Image
 import requests
 from io import BytesIO
+import re
 
 # Initialize Gradio Client
 client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
@@ -22,7 +23,17 @@ def generate_image(height, width, steps, scales, prompt, seed):
         )
         return result
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        # Check for GPU quota error
+        if "GPU quota" in str(e):
+            # Extract the cooldown time from the error message
+            match = re.search(r"Please retry in (\d+:\d+:\d+)", str(e))
+            cooldown_time = match.group(1) if match else "unknown time"
+            st.warning(
+                f"The GPU is under cooldown and will be back within {cooldown_time}. "
+                "Please visit https://hyperdyn.cloud for more information."
+            )
+        else:
+            st.error(f"An error occurred: {e}")
         return None
 
 # Streamlit app layout
@@ -76,3 +87,4 @@ if st.button("Generate"):
                         )
                 except Exception as e:
                     st.error(f"Failed to load image: {e}")
+

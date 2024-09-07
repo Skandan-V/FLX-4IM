@@ -4,6 +4,7 @@ import base64
 from PIL import Image
 import io
 import time
+import requests
 
 # Hide Streamlit's default header and footer
 st.markdown(
@@ -65,9 +66,8 @@ with st.form(key='image_generation_form'):
                     api_name="/process_image"
                 )
 
-                # Ensure result contains the correct key for the image
-                if 'image' in result:
-                    # Show preview and download link
+                # Check if the result is an image
+                if isinstance(result, dict) and 'image' in result:
                     img_data = base64.b64decode(result['image'])  # Decode base64-encoded image
                     image = Image.open(io.BytesIO(img_data))
 
@@ -79,8 +79,20 @@ with st.form(key='image_generation_form'):
                     img_str = base64.b64encode(buffered.getvalue()).decode()
                     st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
                     
+                elif isinstance(result, bytes):
+                    # Direct image bytes response
+                    image = Image.open(io.BytesIO(result))
+                    
+                    st.image(image, caption='Generated Image', use_column_width=True)
+                    
+                    # Create a download link
+                    buffered = io.BytesIO()
+                    image.save(buffered, format="PNG")
+                    img_str = base64.b64encode(buffered.getvalue()).decode()
+                    st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
+
                 else:
-                    st.error("Image generation failed. No image returned from the API.")
+                    st.error("Unexpected response format from the API.")
                     
             except Exception as e:
                 st.error(f"An error occurred: {e}")

@@ -1,15 +1,11 @@
 import streamlit as st
+from gradio_client import Client
 from PIL import Image
+import requests
 from io import BytesIO
-import random
-import time
 
-# Dummy image generation function (replace with actual model code)
-def generate_image(prompt, width, height):
-    # Simulate image generation
-    time.sleep(3)  # Simulate processing time
-    img = Image.new('RGB', (width, height), color=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-    return img
+# Initialize Gradio client
+client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
 
 # Title and description
 st.title('Hyperdyn - Image Generation Tool')
@@ -37,17 +33,31 @@ if st.button('Generate'):
         # Extract dimensions from selected resolution
         width, height = resolutions[resolution]
         
-        # Generate the image
         try:
-            image = generate_image(prompt, width, height)
-            buffered = BytesIO()
-            image.save(buffered, format="PNG")
-            img_bytes = buffered.getvalue()
+            # Generate image using Gradio client
+            result = client.predict(
+                height=height,
+                width=width,
+                steps=8,
+                scales=3.5,
+                prompt=prompt,
+                seed=random.randint(0, 10000),
+                api_name="/process_image"
+            )
             
-            # Display the image
-            st.image(image, caption='Generated Image', use_column_width=True)
+            # Get image path from result
+            img_path = result  # Adjust based on the actual response format
+            
+            # Load and display image
+            response = requests.get(img_path)
+            img = Image.open(BytesIO(response.content))
+            st.image(img, caption='Generated Image', use_column_width=True)
             
             # Provide download button
+            buffered = BytesIO()
+            img.save(buffered, format="PNG")
+            img_bytes = buffered.getvalue()
+            
             st.download_button(
                 label='Download Image',
                 data=img_bytes,

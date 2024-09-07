@@ -20,11 +20,11 @@ def generate_image(height, width, steps, scales, prompt, seed):
             seed=seed,
             api_name="/process_image"
         )
-        # Extract image path from result
-        image_path = result.get('filepath', '')
-        return image_path
+        # Directly use the result as the image path
+        return result
     except Exception as e:
         st.error(f"An error occurred: {e}")
+        return None
 
 # Streamlit app layout
 st.set_page_config(page_title="Hyperdyn - Image Generation Tool", layout="centered")
@@ -41,10 +41,18 @@ resolutions = {
 # Input fields
 selected_resolution = st.selectbox("Select resolution:", list(resolutions.keys()))
 height, width = resolutions[selected_resolution]
+
+# Basic settings
+st.header("Basic Settings")
 steps = st.slider("Inference Steps", min_value=1, max_value=50, value=8)
 scales = st.slider("Guidance Scale", min_value=1.0, max_value=10.0, value=3.5, step=0.1)
 prompt = st.text_input("Enter your prompt:")
 seed = st.number_input("Seed (for reproducibility)", min_value=0, max_value=10000, value=3413)
+
+# Advanced settings
+with st.expander("Advanced Settings"):
+    # Add any additional advanced settings here if needed
+    st.write("Additional settings can be configured here.")
 
 # Add a button to generate the image
 if st.button("Generate"):
@@ -57,7 +65,8 @@ if st.button("Generate"):
             
             if image_path:
                 # Display the image preview
-                st.image(image_path, caption="Generated Image", use_column_width=True)
+                image = Image.open(requests.get(image_path, stream=True).raw)
+                st.image(image, caption="Generated Image", use_column_width=True)
                 
                 # Provide a download button
                 with open(image_path, "rb") as file:

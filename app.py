@@ -3,6 +3,7 @@ from gradio_client import Client
 from PIL import Image
 import requests
 from io import BytesIO
+import random  # Import the random module
 
 # Initialize Gradio client
 client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
@@ -41,7 +42,7 @@ if st.button('Generate'):
                 steps=8,
                 scales=3.5,
                 prompt=prompt,
-                seed=random.randint(0, 10000),
+                seed=random.randint(0, 10000),  # Use random seed
                 api_name="/process_image"
             )
             

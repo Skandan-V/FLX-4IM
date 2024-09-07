@@ -1,24 +1,7 @@
 import streamlit as st
 import requests
 import base64
-import subprocess
-import time
 import json
-
-# Start Ngrok tunnel
-def start_ngrok():
-    ngrok_process = subprocess.Popen(["ngrok", "http", "8501"])
-    time.sleep(5)  # Wait for Ngrok to start
-    response = requests.get("http://localhost:4040/api/tunnels")
-    public_url = response.json()['tunnels'][0]['public_url']
-    return public_url
-
-# Fetch Ngrok public URL
-try:
-    public_url = start_ngrok()
-except Exception as e:
-    st.error(f"Failed to start Ngrok: {e}")
-    public_url = "http://localhost:8501"
 
 st.set_page_config(page_title="Hyperdyn - Image Generation Tool", page_icon=":camera:", layout="centered")
 
@@ -48,6 +31,9 @@ uploaded_file = st.file_uploader("Choose an image file...", type=["png", "jpg", 
 # Text prompt input
 prompt = st.text_input("Enter a prompt for the image generation:")
 
+# API URL
+api_url = "http://your-api-endpoint.com/process_image"
+
 if st.button("Generate Image"):
     if uploaded_file and prompt:
         st.markdown("<h3 style='color: white;'>Generating image...</h3>", unsafe_allow_html=True)
@@ -70,15 +56,18 @@ if st.button("Generate Image"):
         }
 
         try:
-            response = requests.post(f"{public_url}/process_image", json=payload)
+            response = requests.post(api_url, json=payload)
             response.raise_for_status()
             result = response.json()
 
             if "image" in result:
-                st.image(result["image"], caption="Generated Image")
+                # Decode image from base64 and display
+                image_bytes = base64.b64decode(result["image"].split(",")[1])
+                st.image(image_bytes, caption="Generated Image")
+                
                 st.download_button(
                     label="Download Image",
-                    data=base64.b64decode(result["image"].split(",")[1]),
+                    data=image_bytes,
                     file_name="generated_image.png",
                     mime="image/png"
                 )
@@ -93,4 +82,4 @@ if st.button("Generate Image"):
         st.error("Please upload an image and enter a prompt.")
 
 # Footer
-st.markdown(f"<h6 style='text-align: center; color: white;'>API endpoint: {public_url}/process_image</h6>", unsafe_allow_html=True)
+st.markdown(f"<h6 style='text-align: center; color: white;'>API endpoint: {api_url}</h6>", unsafe_allow_html=True)

@@ -4,7 +4,7 @@ import base64
 from PIL import Image
 import io
 import requests
-import os
+import time  # Import time module
 
 # Hide Streamlit's default header and footer
 st.markdown(
@@ -72,11 +72,10 @@ with st.form(key='image_generation_form'):
 
                 # Check if the result is a file path
                 if isinstance(result, str) and result.startswith('/tmp/'):
-                    # Download the image
-                    image_url = f'http://localhost:8501{result}'
-                    image_response = requests.get(image_url)
-                    if image_response.status_code == 200:
-                        image = Image.open(io.BytesIO(image_response.content))
+                    # Adjust the path to the image file
+                    image_path = result
+                    with open(image_path, "rb") as image_file:
+                        image = Image.open(io.BytesIO(image_file.read()))
                         st.image(image, caption='Generated Image', use_column_width=True)
 
                         # Create a download link
@@ -84,8 +83,6 @@ with st.form(key='image_generation_form'):
                         image.save(buffered, format="PNG")
                         img_str = base64.b64encode(buffered.getvalue()).decode()
                         st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
-                    else:
-                        st.error("Failed to download the image.")
                 else:
                     st.error("Unexpected response format from the API.")
                     

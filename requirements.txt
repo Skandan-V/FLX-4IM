@@ -1,3 +1,4 @@
 streamlit==1.25.0
 Pillow==9.5.0
 gradio==3.33.0
+pip install --upgrade pip setuptools

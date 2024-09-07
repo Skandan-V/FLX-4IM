@@ -1,9 +1,6 @@
 import streamlit as st
 import requests
-import time
-import random
-from PIL import Image
-from io import BytesIO
+import json
 
 # Define the function to generate the image using the provided API
 def generate_image(prompt, resolution):
@@ -20,8 +17,13 @@ def generate_image(prompt, resolution):
         response = requests.post(api_url, json=payload)
         response.raise_for_status()
         
-        # Check if the response contains image path
+        # Debugging: Print response text
+        st.write("Response Text:", response.text)
+        
+        # Parse response as JSON
         response_json = response.json()
+        
+        # Check if the response contains image path
         if 'image_path' in response_json:
             image_path = response_json['image_path']
             return image_path
@@ -58,7 +60,7 @@ if st.button("Generate"):
             image_path = generate_image(prompt, resolutions[selected_resolution])
             
             if image_path:
-                # Display the image preview
+                # Construct the image URL and display the preview
                 image_url = f"http://localhost:8501{image_path}"  # Adjust URL as needed
                 st.image(image_url, caption="Generated Image", use_column_width=True)
                 

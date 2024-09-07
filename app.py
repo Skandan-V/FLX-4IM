@@ -16,7 +16,8 @@ def image_to_base64(img):
 
 # Function to generate image
 def generate_image(prompt, resolution):
-    with st.spinner('Generating image...'):
+    try:
+        # Simulate the image generation process
         result = client.predict(
             height=resolution[1],
             width=resolution[0],
@@ -26,7 +27,14 @@ def generate_image(prompt, resolution):
             seed=3413,
             api_name="/process_image"
         )
-        return result
+        # Ensure result is in expected format (base64 image)
+        if isinstance(result, str) and result.startswith("data:image/png;base64,"):
+            return result
+        else:
+            raise ValueError("Unexpected response format from API.")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None
 
 # Streamlit UI
 st.set_page_config(page_title="Image Generation Tool", layout="wide")
@@ -46,17 +54,16 @@ resolution = st.sidebar.selectbox("Select Resolution", options=list(resolutions.
 resolution = resolutions[resolution]
 
 if st.sidebar.button("Generate"):
-    try:
+    with st.spinner('Generating image...'):
         image_base64 = generate_image(prompt, resolution)
-        st.image(f"data:image/png;base64,{image_base64}", caption="Generated Image", use_column_width=True)
-        st.download_button(
-            label="Download Image",
-            data=base64.b64decode(image_base64),
-            file_name="generated_image.png",
-            mime="image/png"
-        )
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+        if image_base64:
+            st.image(f"data:image/png;base64,{image_base64}", caption="Generated Image", use_column_width=True)
+            st.download_button(
+                label="Download Image",
+                data=base64.b64decode(image_base64.split(",")[1]),
+                file_name="generated_image.png",
+                mime="image/png"
+            )
 
 # Live logs
 st.sidebar.subheader("Live Logs")

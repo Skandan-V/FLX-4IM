@@ -1,76 +1,68 @@
 import streamlit as st
-from gradio_client import Client
-import base64
-import io
-from PIL import Image
 import time
+import base64
+from PIL import Image
+import requests
 
-# Initialize Gradio client
-client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
+# Title and description
+st.title('Hyperdyn - Image Generation Tool')
+st.subheader('Generate images using the latest AI models.')
 
-# Function to convert image to base64
-def image_to_base64(img):
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-# Function to generate image
-def generate_image(prompt, resolution):
-    try:
-        # Simulate the image generation process
-        result = client.predict(
-            height=resolution[1],
-            width=resolution[0],
-            steps=8,
-            scales=3.5,
-            prompt=prompt,
-            seed=3413,
-            api_name="/process_image"
-        )
-        # Ensure result is in expected format (base64 image)
-        if isinstance(result, str) and result.startswith("data:image/png;base64,"):
-            return result
-        else:
-            raise ValueError("Unexpected response format from API.")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        return None
-
-# Streamlit UI
-st.set_page_config(page_title="Image Generation Tool", layout="wide")
-st.title("Hyperdyn - Image Generation Tool")
-
-# Resolution options
+# Define resolutions
 resolutions = {
-    "1024x1024": (1024, 1024),
-    "512x512": (512, 512),
-    "256x256": (256, 256)
+    '256x256': (256, 256),
+    '512x512': (512, 512),
+    '1024x1024': (1024, 1024)
 }
 
-# User input
-st.sidebar.header("Settings")
-prompt = st.sidebar.text_area("Enter prompt", "Astronaut riding a horse")
-resolution = st.sidebar.selectbox("Select Resolution", options=list(resolutions.keys()))
-resolution = resolutions[resolution]
+# Prompt input
+prompt = st.text_input('Enter your prompt:', 'Astronaut riding a horse')
 
-if st.sidebar.button("Generate"):
-    with st.spinner('Generating image...'):
-        image_base64 = generate_image(prompt, resolution)
-        if image_base64:
-            st.image(f"data:image/png;base64,{image_base64}", caption="Generated Image", use_column_width=True)
-            st.download_button(
-                label="Download Image",
-                data=base64.b64decode(image_base64.split(",")[1]),
-                file_name="generated_image.png",
-                mime="image/png"
-            )
+# Resolution selector
+resolution = st.selectbox('Select resolution:', list(resolutions.keys()))
 
-# Live logs
-st.sidebar.subheader("Live Logs")
-log_container = st.sidebar.empty()
+# Button to generate image
+if st.button('Generate'):
+    st.write('Generating image...')
+    
+    # Show loading spinner
+    with st.spinner('Generating...'):
+        # Example API call, replace with actual API call
+        # Extract dimensions from selected resolution
+        width, height = resolutions[resolution]
 
-for i in range(10):
-    log_container.text(f"Fetching logs... ({i+1}/10)")
+        # Example request payload (replace with actual API URL)
+        url = 'http://your-api-endpoint.com/process_image'
+        payload = {
+            'height': height,
+            'width': width,
+            'steps': 8,
+            'scales': 3.5,
+            'prompt': prompt,
+            'seed': 3413
+        }
+
+        # Send request to API
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        result = response.json()
+
+        # Check response and display image
+        if 'image_path' in result:
+            img_path = result['image_path']
+            image = Image.open(img_path)
+            st.image(image, caption='Generated Image', use_column_width=True)
+            
+            # Provide download button
+            with open(img_path, 'rb') as file:
+                st.download_button(label='Download Image', data=file, file_name='generated_image.png')
+        else:
+            st.error('Failed to generate image. Please try again.')
+
+# Live logs section
+st.subheader('Live Logs:')
+log_text = st.empty()
+for i in range(10):  # Simulate live logs for 10 seconds
+    log_text.text(f'Log entry {i + 1}: Processing...')
     time.sleep(1)
-
-log_container.text("Logs updated.")
+log_text.text('Completed.')

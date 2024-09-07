@@ -3,94 +3,80 @@ from gradio_client import Client
 import base64
 from PIL import Image
 import io
-import requests
-import time  # Import time module
 
-# Hide Streamlit's default header and footer
-st.markdown(
-    """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stApp {margin-top: -3rem;}
-    .css-1v3fvcr {text-align: left;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Streamlit configuration
+st.set_page_config(page_title="Image Generation Tool", layout="wide")
+st.title("Hyperdyn")
+st.subheader("Image Generation Tool")
 
-# Title and subtitle
-st.markdown("<h1 style='text-align: left; color: white;'>Hyperdyn</h1>", unsafe_allow_html=True)
-st.markdown("<h2 style='text-align: left; color: white;'>Image Generation Tool</h2>", unsafe_allow_html=True)
-
-# Add a description
-st.markdown(
-    """
-    <p style='text-align: left; color: white;'>This application uses the ByteDance Hyper-FLUX-8Steps-LoRA model for generating images based on the provided text prompt. The API endpoint used for image generation is `/process_image`.</p>
-    """,
-    unsafe_allow_html=True,
-)
-
-# Define the client for the gradio API
+# Initialize Gradio client
 client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
 
-# Streamlit form for input
-with st.form(key='image_generation_form'):
-    prompt = st.text_input("Enter prompt for image generation:")
-    generate_button = st.form_submit_button("Generate Image")
+# Function to encode image to base64
+def image_to_base64(image):
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
-    if generate_button:
-        if not prompt:
-            st.error("Please enter a prompt.")
-        else:
-            # Display progress bar
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+# Function to process image generation
+def generate_image(prompt):
+    try:
+        st.write("Generating image... Please wait.")
+        result = client.predict(
+            height=1024,
+            width=1024,
+            steps=8,
+            scales=3.5,
+            prompt=prompt,
+            seed=3413,
+            api_name="/process_image"
+        )
+        return result
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None
 
-            # Simulate live logs
-            live_logs = st.empty()
-            for i in range(10):
-                time.sleep(1)
-                live_logs.text(f"Generating image... {i * 10}% complete")
-                progress_bar.progress((i + 1) * 10)
+# Displaying UI elements
+prompt = st.text_input("Enter your prompt for image generation", "")
 
-            # Generate the image
-            try:
-                result = client.predict(
-                    height=1024,
-                    width=1024,
-                    steps=8,
-                    scales=3.5,
-                    prompt=prompt,
-                    seed=3413,
-                    api_name="/process_image"
+if st.button("Generate Image"):
+    if prompt:
+        # Show process loader
+        with st.spinner("Generating image..."):
+            response = generate_image(prompt)
+        
+        if response:
+            # Display raw response
+            st.write("Raw response:", response)
+            
+            # If response is a path to an image file
+            image_path = response
+            if image_path:
+                # Load image
+                image = Image.open(image_path)
+                
+                # Display image
+                st.image(image, caption="Generated Image")
+                
+                # Convert image to base64
+                base64_image = image_to_base64(image)
+                
+                # Download button
+                st.download_button(
+                    label="Download Image",
+                    data=base64.b64decode(base64_image),
+                    file_name="generated_image.png",
+                    mime="image/png"
                 )
+    else:
+        st.warning("Please enter a prompt to generate an image.")
 
-                # Show raw response for debugging
-                st.subheader("Raw API Response")
-                st.write(result)
-
-                # Check if the result is a file path
-                if isinstance(result, str) and result.startswith('/tmp/'):
-                    # Adjust the path to the image file
-                    image_path = result
-                    with open(image_path, "rb") as image_file:
-                        image = Image.open(io.BytesIO(image_file.read()))
-                        st.image(image, caption='Generated Image', use_column_width=True)
-
-                        # Create a download link
-                        buffered = io.BytesIO()
-                        image.save(buffered, format="PNG")
-                        img_str = base64.b64encode(buffered.getvalue()).decode()
-                        st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
-                else:
-                    st.error("Unexpected response format from the API.")
-                    
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-
-# Display API endpoint URL in the footer
+# Display API endpoint URL in footer
 st.markdown(
-    '<footer style="text-align: left; color: white;">API Endpoint: /process_image</footer>',
+    """
+    <footer style="text-align: center;">
+        <p>API endpoint: <code>{}</code></p>
+    </footer>
+    """.format("http://localhost:8501/process_image"), 
     unsafe_allow_html=True
 )

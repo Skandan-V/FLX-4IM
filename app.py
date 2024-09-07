@@ -12,14 +12,23 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     .stApp {margin-top: -3rem;}
+    .css-1v3fvcr {text-align: left;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # Title and subtitle
-st.markdown("<h1 style='text-align: center; color: white;'>Hyperdyn</h1>", unsafe_allow_html=True)
-st.markdown("<h2 style='text-align: center; color: white;'>Image Generation Tool</h2>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: left; color: white;'>Hyperdyn</h1>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: left; color: white;'>Image Generation Tool</h2>", unsafe_allow_html=True)
+
+# Add a description
+st.markdown(
+    """
+    <p style='text-align: left; color: white;'>This application uses the ByteDance Hyper-FLUX-8Steps-LoRA model for generating images based on the provided text prompt. The API endpoint used for image generation is `/process_image`.</p>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Define the client for the gradio API
 client = Client("ByteDance/Hyper-FLUX-8Steps-LoRA")
@@ -56,27 +65,28 @@ with st.form(key='image_generation_form'):
                     api_name="/process_image"
                 )
 
-                # Show preview and download link
-                img_data = base64.b64decode(result['image'])  # Decode base64-encoded image
-                image = Image.open(io.BytesIO(img_data))
+                # Ensure result contains the correct key for the image
+                if 'image' in result:
+                    # Show preview and download link
+                    img_data = base64.b64decode(result['image'])  # Decode base64-encoded image
+                    image = Image.open(io.BytesIO(img_data))
 
-                st.image(image, caption='Generated Image', use_column_width=True)
-                
-                # Create a download link
-                buffered = io.BytesIO()
-                image.save(buffered, format="PNG")
-                img_str = base64.b64encode(buffered.getvalue()).decode()
-                st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
-                
-                # Show API endpoint URL in the footer
-                st.markdown(
-                    f'<footer style="text-align: center; color: white;">API Endpoint: /process_image</footer>',
-                    unsafe_allow_html=True
-                )
-                
+                    st.image(image, caption='Generated Image', use_column_width=True)
+                    
+                    # Create a download link
+                    buffered = io.BytesIO()
+                    image.save(buffered, format="PNG")
+                    img_str = base64.b64encode(buffered.getvalue()).decode()
+                    st.markdown(f'<a href="data:file/png;base64,{img_str}" download="generated_image.png">Download Image</a>', unsafe_allow_html=True)
+                    
+                else:
+                    st.error("Image generation failed. No image returned from the API.")
+                    
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
-# Running the Streamlit application
-if __name__ == "__main__":
-    st.write("Streamlit app is running.")
+# Display API endpoint URL in the footer
+st.markdown(
+    '<footer style="text-align: left; color: white;">API Endpoint: /process_image</footer>',
+    unsafe_allow_html=True
+)

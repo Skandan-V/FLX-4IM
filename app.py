@@ -66,6 +66,10 @@ with st.form(key='image_generation_form'):
                     api_name="/process_image"
                 )
 
+                # Show raw response for debugging
+                st.subheader("Raw API Response")
+                st.write(result)
+
                 # Check if the result is an image
                 if isinstance(result, dict) and 'image' in result:
                     img_data = base64.b64decode(result['image'])  # Decode base64-encoded image

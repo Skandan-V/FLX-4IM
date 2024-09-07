@@ -1,8 +1,15 @@
 import streamlit as st
-import time
-import base64
 from PIL import Image
-import requests
+from io import BytesIO
+import random
+import time
+
+# Dummy image generation function (replace with actual model code)
+def generate_image(prompt, width, height):
+    # Simulate image generation
+    time.sleep(3)  # Simulate processing time
+    img = Image.new('RGB', (width, height), color=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    return img
 
 # Title and description
 st.title('Hyperdyn - Image Generation Tool')
@@ -27,42 +34,24 @@ if st.button('Generate'):
     
     # Show loading spinner
     with st.spinner('Generating...'):
-        # Example API call, replace with actual API call
         # Extract dimensions from selected resolution
         width, height = resolutions[resolution]
-
-        # Example request payload (replace with actual API URL)
-        url = 'http://your-api-endpoint.com/process_image'
-        payload = {
-            'height': height,
-            'width': width,
-            'steps': 8,
-            'scales': 3.5,
-            'prompt': prompt,
-            'seed': 3413
-        }
-
-        # Send request to API
-        response = requests.post(url, json=payload)
-        response.raise_for_status()
-        result = response.json()
-
-        # Check response and display image
-        if 'image_path' in result:
-            img_path = result['image_path']
-            image = Image.open(img_path)
+        
+        # Generate the image
+        try:
+            image = generate_image(prompt, width, height)
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            img_bytes = buffered.getvalue()
+            
+            # Display the image
             st.image(image, caption='Generated Image', use_column_width=True)
             
             # Provide download button
-            with open(img_path, 'rb') as file:
-                st.download_button(label='Download Image', data=file, file_name='generated_image.png')
-        else:
-            st.error('Failed to generate image. Please try again.')
-
-# Live logs section
-st.subheader('Live Logs:')
-log_text = st.empty()
-for i in range(10):  # Simulate live logs for 10 seconds
-    log_text.text(f'Log entry {i + 1}: Processing...')
-    time.sleep(1)
-log_text.text('Completed.')
+            st.download_button(
+                label='Download Image',
+                data=img_bytes,
+                file_name='generated_image.png'
+            )
+        except Exception as e:
+            st.error(f'An error occurred: {e}')
